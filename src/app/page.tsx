@@ -22,6 +22,14 @@ import {
   Percent,
 } from 'lucide-react';
 import { Account, FinancialKPIs, Transaction } from '@/lib/types';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+} from 'recharts';
 
 export default function DashboardPage() {
   const [kpis, setKpis] = useState<FinancialKPIs | null>(null);
@@ -114,6 +122,15 @@ export default function DashboardPage() {
       maximumFractionDigits: 0,
     }).format(num);
   };
+
+  const chartData = (kpis?.categorySpending || [])
+    .slice(0, 5)
+    .map(c => ({
+      name: c.category.split(' ')[0],
+      fullName: c.category,
+      Spent: c.amount,
+      Target: c.monthlyTarget,
+    }));
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -416,6 +433,48 @@ export default function DashboardPage() {
             ) : (
               <p className="text-xs text-slate-500">No category spending data yet.</p>
             )}
+
+            {/* Target vs Spending Recharts Bar Chart */}
+            {chartData.length > 0 && (
+              <div className="pt-4 border-t border-white/5 space-y-2">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="font-semibold text-slate-300">Spent vs Target Visualizer</span>
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-1 text-[10px] text-slate-400">
+                      <span className="w-2 h-2 rounded-sm bg-emerald-500"></span> Spent
+                    </span>
+                    <span className="flex items-center gap-1 text-[10px] text-slate-400">
+                      <span className="w-2 h-2 rounded-sm bg-slate-700"></span> Target
+                    </span>
+                  </div>
+                </div>
+                <div className="h-40 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                      <XAxis dataKey="name" stroke="#64748B" fontSize={10} tickLine={false} />
+                      <YAxis
+                        stroke="#64748B"
+                        fontSize={10}
+                        tickLine={false}
+                        tickFormatter={val => `₹${Math.round(val / 1000)}k`}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#0F172A',
+                          borderColor: 'rgba(255,255,255,0.1)',
+                          borderRadius: '0.75rem',
+                          fontSize: '11px',
+                          color: '#fff',
+                        }}
+                        formatter={(val: any) => formatCurrency(val)}
+                      />
+                      <Bar dataKey="Spent" fill="#10B981" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Target" fill="#334155" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -456,7 +515,16 @@ export default function DashboardPage() {
                 <tbody className="divide-y divide-white/5">
                   {kpis.recentTransactions.map(txn => {
                     const isCredit = txn.type === 'income' || txn.type === 'refund';
-                    return (
+                    const chartData = (kpis?.categorySpending || [])
+    .slice(0, 5)
+    .map(c => ({
+      name: c.category.split(' ')[0],
+      fullName: c.category,
+      Spent: c.amount,
+      Target: c.monthlyTarget,
+    }));
+
+  return (
                       <tr key={txn.id} className="hover:bg-white/5 transition">
                         <td className="py-3 px-4 font-mono text-slate-400">{txn.date}</td>
                         <td className="py-3 px-4">
@@ -639,3 +707,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

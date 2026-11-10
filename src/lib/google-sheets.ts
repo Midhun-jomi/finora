@@ -6,8 +6,8 @@ export interface GoogleSheetsClientConfig {
   privateKey?: string;
 }
 
-export function getGoogleSheetsClient() {
-  const sheetId = process.env.GOOGLE_SHEET_ID;
+export function getGoogleSheetsClient(overrideSheetId?: string) {
+  const sheetId = overrideSheetId || process.env.GOOGLE_SHEET_ID;
   const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   let privateKey = process.env.GOOGLE_PRIVATE_KEY;
 
@@ -170,3 +170,4 @@ export async function appendToGoogleSheet(
     return false;
   }
 }
+

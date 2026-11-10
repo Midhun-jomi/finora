@@ -157,3 +157,4 @@ export default function BankSyncArchitecturePage() {
     </div>
   );
 }
+

@@ -369,3 +369,4 @@ describe('Finora Bank Account & Automated Expense Tracking Test Suite', () => {
     expect(kpis.monthlyExpense).toBe(5000);
   });
 });
+

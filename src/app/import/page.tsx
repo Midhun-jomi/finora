@@ -26,11 +26,11 @@ import { Account, ColumnMapping, ParsedTransactionPreview, TransactionType } fro
 const POPULAR_BANKS = [
   { name: 'SBI', label: 'State Bank of India', sample: 'sbi_statement.csv' },
   { name: 'HDFC', label: 'HDFC Bank', sample: 'hdfc_statement.csv' },
-  { name: 'ICICI', label: 'ICICI Bank', sample: 'generic_statement.csv' },
+  { name: 'ICICI', label: 'ICICI Bank', sample: 'icici_statement.csv' },
   { name: 'Axis', label: 'Axis Bank', sample: 'axis_statement.csv' },
-  { name: 'Federal', label: 'Federal Bank', sample: 'generic_statement.csv' },
-  { name: 'Canara', label: 'Canara Bank', sample: 'generic_statement.csv' },
-  { name: 'Generic', label: 'Standard CSV', sample: 'generic_statement.csv' },
+  { name: 'Federal', label: 'Federal Bank', sample: 'federal_statement.csv' },
+  { name: 'Canara', label: 'Canara Bank', sample: 'canara_statement.csv' },
+  { name: 'Generic', label: 'Standard CSV', sample: 'sbi_statement.csv' },
 ];
 
 function ImportContent() {
@@ -147,6 +147,27 @@ Date,Narration,Chq./Ref.No.,Value Dt,Withdrawal Amt.,Deposit Amt.,Closing Balanc
 03/11/24,NETFLIX ENTERTAINMENT,00000491825,03/11/24,649.00,,41232.00
 04/11/24,CRED CC PAYMENT HDFC CARD,00000491826,04/11/24,12400.00,,28832.00
 05/11/24,DIVIDEND CREDITED TCS LTD,00000491827,05/11/24,,1800.00,30632.00`;
+      } else if (sampleFileName === 'icici_statement.csv') {
+        sampleText = `ICICI BANK LIMITED - STATEMENT OF TRANSACTIONS
+Transaction Date,Value Date,Particulars,Transaction Remarks,Cheque No,Withdrawal Amount (INR),Deposit Amount (INR),Balance (INR)
+02/11/2024,02/11/2024,INF/INFT/2048123891/AMAZON INDIA,POS 4123 AMAZON SELLER SERVICES,,3299.00,,68200.50
+03/11/2024,03/11/2024,UPI/4321908123/STARBUCKS COFFEE,UPI/4321908123/STARBUCKS/HDFC/Pay,,380.00,,67820.50
+04/11/2024,04/11/2024,ACH D- NETFLIX ENTERTAINMENT,ACH D- NETFLIX MUMBAI,,649.00,,67171.50
+05/11/2024,05/11/2024,NEFT-CR-AXISB1092-INFOSYS SALARY,SALARY FOR OCTOBER 2024,,,85000.00,152171.50
+06/11/2024,06/11/2024,MMT/COMMUTE/BANGALORE-DELHI,MAKEMYTRIP INDIA PVT LTD,,4500.00,,147671.50`;
+      } else if (sampleFileName === 'federal_statement.csv') {
+        sampleText = `Date,Description,Cheque No,Withdrawals,Deposits,Balance
+01-11-2024,SWIGGY BANGALORE IN,UPI/412389102,450.00,,34550.00
+02-11-2024,RAPIDO BIKE TAXI BLR,UPI/412389103,120.00,,34430.00
+03-11-2024,INTEREST CREDITED FOR Q3,INT-102919,,380.00,34810.00
+04-11-2024,APOLLO PHARMACY BANGALORE,POS/482019,750.00,,34060.00
+05-11-2024,ZERODHA BROKING LTD BLR,UPI/ZERODHA/991,10000.00,,24060.00`;
+      } else if (sampleFileName === 'canara_statement.csv') {
+        sampleText = `TRANS DATE,VALUE DATE,REMARKS,CHEQUE NO,DEBIT,CREDIT,BALANCE
+10/11/2024,10/11/2024,DOMINOS PIZZA ONLINE,CHQ-991,550.00,,42300.00
+11/11/2024,11/11/2024,BESCOM ELECTRICITY BILL,CHQ-992,1850.00,,40450.00
+12/11/2024,12/11/2024,HPCL PETROL PUMP CORAMANGALA,CHQ-993,2000.00,,38450.00
+13/11/2024,13/11/2024,CREDIT INTEREST OCT 2024,CHQ-994,,210.00,38660.00`;
       } else {
         sampleText = `Tran Date,CHQNO,PARTICULARS,DR,CR,BAL
 15-Nov-2024,CHQ-1001,BLINKIT GROCERY BLR,1450.00,,58550.00

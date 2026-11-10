@@ -178,3 +178,4 @@ export async function syncDbToGoogleSheets(data: FinoraDatabase) {
     console.error('Google Sheets sync failed:', err);
   }
 }
+

@@ -47,6 +47,16 @@ function TransactionsContent() {
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
+  // Manual Transaction Modal State
+  const [isAddManualOpen, setIsAddManualOpen] = useState(false);
+  const [manualAccount, setManualAccount] = useState('');
+  const [manualDate, setManualDate] = useState(new Date().toISOString().split('T')[0]);
+  const [manualDesc, setManualDesc] = useState('');
+  const [manualAmount, setManualAmount] = useState('');
+  const [manualType, setManualType] = useState<TransactionType>('expense');
+  const [manualCategory, setManualCategory] = useState('Food & Dining');
+  const [manualNotes, setManualNotes] = useState('');
+
   const categories = [
     'Food & Dining', 'Groceries', 'Travel & Commute', 'Shopping',
     'Entertainment', 'Subscriptions', 'Fuel', 'Utilities',
@@ -134,6 +144,70 @@ function TransactionsContent() {
     }
   };
 
+  const handleCreateManual = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const accId = manualAccount || (accounts.length > 0 ? accounts[0].id : '');
+    if (!accId || !manualAmount) return;
+    try {
+      setSubmitting(true);
+      const res = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accountId: accId,
+          date: manualDate,
+          description: manualDesc || 'Manual Entry',
+          amount: parseFloat(manualAmount),
+          type: manualType,
+          category: manualCategory,
+          notes: manualNotes,
+        }),
+      });
+      if (res.ok) {
+        setIsAddManualOpen(false);
+        setManualDesc('');
+        setManualAmount('');
+        setManualNotes('');
+        setFeedback('Manual transaction added!');
+        fetchTxns();
+        setTimeout(() => setFeedback(null), 3000);
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to add transaction.');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleExportCSV = () => {
+    if (transactions.length === 0) return;
+    const headers = ['ID', 'Date', 'Merchant', 'Description', 'Category', 'Type', 'Amount', 'Source', 'Reference ID', 'Notes'];
+    const rows = transactions.map(t => [
+      t.id,
+      t.date,
+      `"${(t.merchantName || '').replace(/"/g, '""')}"`,
+      `"${(t.description || '').replace(/"/g, '""')}"`,
+      t.category,
+      t.type,
+      t.amount,
+      t.source,
+      t.bankReferenceId || '',
+      `"${(t.notes || '').replace(/"/g, '""')}"`
+    ]);
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `finora_transactions_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this transaction?')) return;
 
@@ -180,10 +254,27 @@ function TransactionsContent() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-semibold transition active:scale-95"
+            title="Export filtered transactions as CSV"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+            Export CSV
+          </button>
+
+          <button
+            onClick={() => setIsAddManualOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-semibold transition active:scale-95"
+          >
+            <PlusCircle className="w-3.5 h-3.5 text-emerald-400" />
+            Log Transaction
+          </button>
+
           <Link
             href="/import"
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-black text-xs font-bold shadow-glow-emerald transition active:scale-95"
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-black text-xs font-bold shadow-glow-emerald transition active:scale-95"
           >
             <UploadCloud className="w-4 h-4 stroke-[2.5]" />
             Import CSV
@@ -505,6 +596,136 @@ function TransactionsContent() {
                   className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold transition disabled:opacity-50"
                 >
                   {submitting ? 'Saving...' : 'Update Transaction'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Log Manual Transaction Modal */}
+      {isAddManualOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="glass-panel-elevated w-full max-w-md rounded-2xl p-6 border border-white/10 space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <PlusCircle className="w-4 h-4 text-emerald-400" />
+                Log Manual Transaction
+              </h3>
+              <button onClick={() => setIsAddManualOpen(false)} className="text-slate-400 hover:text-white">
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateManual} className="space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-medium mb-1">Target Account *</label>
+                  <select
+                    value={manualAccount}
+                    onChange={e => setManualAccount(e.target.value)}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+                  >
+                    {accounts.map(acc => (
+                      <option key={acc.id} value={acc.id}>
+                        {acc.name} ({acc.bankName})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-medium mb-1">Transaction Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={manualDate}
+                    onChange={e => setManualDate(e.target.value)}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-medium mb-1">Merchant / Description *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Local Grocery Store, Cash Coffee"
+                  value={manualDesc}
+                  onChange={e => setManualDesc(e.target.value)}
+                  className="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-medium mb-1">Amount (₹) *</label>
+                  <input
+                    type="number"
+                    step="any"
+                    required
+                    placeholder="0.00"
+                    value={manualAmount}
+                    onChange={e => setManualAmount(e.target.value)}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-medium mb-1">Type</label>
+                  <select
+                    value={manualType}
+                    onChange={e => setManualType(e.target.value as any)}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-2 text-white focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="expense">Expense</option>
+                    <option value="income">Income</option>
+                    <option value="transfer">Transfer</option>
+                    <option value="credit_card_payment">CC Payment</option>
+                    <option value="refund">Refund</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-medium mb-1">Category</label>
+                  <select
+                    value={manualCategory}
+                    onChange={e => setManualCategory(e.target.value)}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-2 py-2 text-white focus:outline-none focus:border-emerald-500"
+                  >
+                    {categories.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-medium mb-1">Notes / Tags</label>
+                <input
+                  type="text"
+                  placeholder="Optional notes..."
+                  value={manualNotes}
+                  onChange={e => setManualNotes(e.target.value)}
+                  className="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="pt-4 border-t border-white/10 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsAddManualOpen(false)}
+                  className="px-4 py-2 rounded-xl text-slate-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold transition disabled:opacity-50"
+                >
+                  {submitting ? 'Saving...' : 'Add Transaction'}
                 </button>
               </div>
             </form>
