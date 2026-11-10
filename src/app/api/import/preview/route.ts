@@ -87,3 +87,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err.message || 'Failed to parse bank statement.' }, { status: 400 });
   }
 }
+

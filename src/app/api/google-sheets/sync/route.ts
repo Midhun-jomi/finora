@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 import { readDatabase, syncDbToGoogleSheets } from '@/lib/db';
 import { getGoogleSheetsClient, initializeSpreadsheet } from '@/lib/google-sheets';
 
@@ -24,23 +26,57 @@ export async function GET() {
   }
 }
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
-    const client = getGoogleSheetsClient();
+    const body = await req.json().catch(() => ({}));
+    const sheetInput = (body.sheetId || body.spreadsheetUrl || '').trim();
+    let explicitId: string | undefined = undefined;
+
+    if (sheetInput) {
+      const match = sheetInput.match(/\/d\/([a-zA-Z0-9-_]+)/);
+      explicitId = match ? match[1] : sheetInput;
+      process.env.GOOGLE_SHEET_ID = explicitId;
+
+      // Update .env.local file
+      try {
+        const envPath = path.join(process.cwd(), '.env.local');
+        if (fs.existsSync(envPath)) {
+          let envContent = fs.readFileSync(envPath, 'utf-8');
+          if (envContent.includes('GOOGLE_SHEET_ID=')) {
+            envContent = envContent.replace(/GOOGLE_SHEET_ID=.*/, `GOOGLE_SHEET_ID=${explicitId}`);
+          } else {
+            envContent = `GOOGLE_SHEET_ID=${explicitId}\n` + envContent;
+          }
+          fs.writeFileSync(envPath, envContent, 'utf-8');
+        }
+      } catch (e) {
+        console.error('Could not update .env.local:', e);
+      }
+    }
+
+    const client = getGoogleSheetsClient(explicitId);
     if (!client) {
       return NextResponse.json({
         success: false,
-        message: 'Google Sheets credentials not configured. Financial records are securely maintained in local database.',
+        message: 'Google Sheets credentials not configured. Please supply a Sheet ID or URL and service account keys.',
+      }, { status: 400 });
+    }
+
+    const initRes = await initializeSpreadsheet(client.sheetId);
+    if (!initRes.initialized) {
+      return NextResponse.json({
+        success: false,
+        message: initRes.message || initRes.error || 'Failed to initialize spreadsheet. Make sure you shared the sheet with the service account email as Editor.',
       }, { status: 400 });
     }
 
     const db = readDatabase();
-    await initializeSpreadsheet(client.sheetId);
     await syncDbToGoogleSheets(db);
 
     return NextResponse.json({
       success: true,
-      message: 'All Accounts, Transactions, and Import History successfully synced to Google Sheets!',
+      sheetId: client.sheetId,
+      message: 'Successfully connected and synced all 7 sheets with Google Sheets!',
       syncedAt: new Date().toISOString(),
     });
   } catch (err: any) {

@@ -158,3 +158,4 @@ export interface GoogleSheetsConfig {
   connected: boolean;
   lastSyncedAt?: string;
 }
+
